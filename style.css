@@ -1,0 +1,355 @@
+/* ==========================================================================
+   1. 基礎重設與變數定義 (Reset & Variables)
+   ========================================================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, "Microsoft JhengHei";
+}
+
+:root {
+    --bg-main: #0f172a;       /* 深藍黑色背景 */
+    --bg-card: #1e293b;       /* 卡片深灰色背景 */
+    --accent-teal: #2dd4bf;   /* 亮青色（主視覺色） */
+    --accent-hover: #14b8a6;  /* 亮青色 Hover 狀態 */
+    --text-primary: #f8fafc;  /* 主要文字顏色（接近純白） */
+    --text-secondary: #94a3b8;/* 次要文字顏色（灰藍色） */
+    --border-color: #334155;  /* 線條與邊框顏色 */
+}
+
+html {
+    scroll-behavior: smooth; /* 點擊導覽列時，平滑滾動到該區域 */
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+/* ==========================================================================
+   2. 導覽列設計 (Navbar Layout)
+   ========================================================================== */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background-color: rgba(30, 41, 59, 0.85); /* 半透明背景 */
+    backdrop-filter: blur(10px);               /* 毛玻璃特效 */
+    border-bottom: 1px solid var(--border-color);
+    z-index: 1000;
+}
+
+.nav-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nav-logo {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: var(--accent-teal);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nav-menu {
+    display: flex;
+    list-style: none;
+    gap: 25px;
+}
+
+.nav-menu a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: color 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.nav-menu a:hover {
+    color: var(--accent-teal);
+}
+
+/* ==========================================================================
+   3. 主視覺看板 (Hero Banner Layout)
+   ========================================================================== */
+.hero-banner {
+    padding: 140px 20px 80px 20px;
+    text-align: center;
+    background: radial-gradient(circle at top, #1e1b4b 0%, #0f172a 100%);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.hero-banner h1 {
+    font-size: 2.8rem;
+    margin-bottom: 15px;
+    color: var(--text-primary);
+    letter-spacing: 1px;
+}
+
+.hero-banner p {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+/* ==========================================================================
+   4. 主要內容排版與通用卡片 (Main Layout & Cards)
+   ========================================================================== */
+.main-content {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.section-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 30px;
+    margin-bottom: 40px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.section-title {
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.section-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin-bottom: 25px;
+}
+
+/* A. 關於我特殊區 */
+.about-text p {
+    margin-bottom: 15px;
+    color: #cbd5e1;
+}
+
+/* B. 課程回顧 Grid 網格系統 */
+.course-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+}
+
+.grid-item {
+    background-color: rgba(15, 23, 42, 0.5);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.grid-item h3 {
+    font-size: 1.1rem;
+    color: var(--accent-teal);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.grid-item p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* C. 期末專題 */
+.project-info h3 {
+    margin-bottom: 12px;
+    color: var(--accent-teal);
+}
+
+.project-info p {
+    margin-bottom: 10px;
+}
+
+/* ==========================================================================
+   5. 核心論壇互動介面 (Forum Interface UI)
+   ========================================================================== */
+/* 發文區塊 */
+.post-box {
+    background-color: rgba(15, 23, 42, 0.4);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 35px;
+}
+
+.post-box h3 {
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    color: #cbd5e1;
+}
+
+.input-group {
+    margin-bottom: 15px;
+}
+
+.input-group input, .input-group textarea {
+    width: 100%;
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 12px 15px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.input-group input:focus, .input-group textarea:focus {
+    border-color: var(--accent-teal); /* 聚焦時線條發亮 */
+}
+
+.btn-submit {
+    background-color: var(--accent-teal);
+    color: var(--bg-main);
+    border: none;
+    border-radius: 6px;
+    padding: 12px 24px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.1s;
+    width: 100%;
+}
+
+.btn-submit:hover {
+    background-color: var(--accent-hover);
+}
+
+.btn-submit:active {
+    transform: scale(0.98); /* 按下去的縮放動態效果 */
+}
+
+/* 動態牆與動態文章卡片 */
+.feed-container h3 {
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    color: #cbd5e1;
+}
+
+.status-msg {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 30px 0;
+    font-size: 0.95rem;
+}
+
+/* 這是待會要被 JavaScript 動態建立的文章卡片樣式 */
+.echo-card {
+    background-color: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    animation: fadeIn 0.4s ease-out; /* 登場淡入特效 */
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 0; transform: translateY(0); }
+}
+
+.echo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.echo-title {
+    font-size: 1.15rem;
+    color: var(--text-primary);
+    font-weight: bold;
+}
+
+.echo-time {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.echo-content {
+    font-size: 0.95rem;
+    color: #cbd5e1;
+    white-space: pre-wrap; /* 保留換行換段符號 */
+    margin-bottom: 15px;
+}
+
+.echo-footer {
+    display: flex;
+    justify-content: flex-start;
+}
+
+/* 按讚按鈕設計 */
+.btn-like {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 6px 14px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.btn-like:hover {
+    border-color: #ef4444; /* 懸停時變紅框 */
+    color: #ef4444;        /* 懸停時變紅字 */
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* ==========================================================================
+   6. 頁尾設計 (Footer Layout)
+   ========================================================================== */
+.footer {
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--text-secondary);
+    border-top: 1px solid var(--border-color);
+    font-size: 0.85rem;
+    margin-top: 60px;
+}
+
+/* ==========================================================================
+   7. 響應式網頁設計 (RWD 適用於手機瀏覽)
+   ========================================================================== */
+@media (max-width: 600px) {
+    .nav-container {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .nav-menu {
+        gap: 15px;
+    }
+    .hero-banner h1 {
+        font-size: 2rem;
+    }
+    .section-card {
+        padding: 20px;
+    }
+}

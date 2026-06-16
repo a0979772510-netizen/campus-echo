@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Echo - 校園匿名論壇成果展</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="#" class="nav-logo"><i class="fa-solid fa-ghost"></i> Campus Echo</a>
+            <ul class="nav-menu">
+                <li><a href="#about"><i class="fa-solid fa-user"></i> 關於我</a></li>
+                <li><a href="#courses"><i class="fa-solid fa-book"></i> 課程回顧</a></li>
+                <li><a href="#project"><i class="fa-solid fa-star"></i> 期末專題</a></li>
+                <li><a href="#forum"><i class="fa-solid fa-comments"></i> 匿名論壇區</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="hero-banner">
+        <h1>校園迴聲 · Campus Echo</h1>
+        <p>一個融合前端設計與雲端 PostgreSQL 資料庫的真實上線匿名論壇系統</p>
+    </header>
+
+    <main class="main-content">
+
+        <section id="about" class="section-card">
+            <h2 class="section-title"><i class="fa-solid fa-user"></i> 關於創作者 / About Me</h2>
+            <div class="about-grid">
+                <div class="about-text">
+                    <p>大家好！我是目前就讀資訊工程與通訊相關科系的學生。本網頁為我的網頁程式設計期末專題成果。</p>
+                    <p>我熱衷於軟體開發與演算法邏輯，這學期除了精進 C/C++ 程式設計與密碼學（如 Caesar/Vigenère 加解密實作）之外，更深入投入了全端網頁開發的領域。</p>
+                    <p><strong>個人技能棧：</strong> HTML5 / CSS3 / JavaScript / C++ / PostgreSQL 資料庫設計</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="courses" class="section-card">
+            <h2 class="section-title"><i class="fa-solid fa-book"></i> 本學期課程回顧 / Course Review</h2>
+            <div class="course-grid">
+                <div class="grid-item">
+                    <h3><i class="fa-brands fa-html5"></i> 前端結構與排版</h3>
+                    <p>深入學習 HTML5 語意化標籤，並透過 CSS3 Flexbox 與 Grid 佈局建構具備響應式設計（RWD）的現代網頁介面。</p>
+                </div>
+                <div class="grid-item">
+                    <h3><i class="fa-brands fa-js"></i> 異步 JavaScript 互動</h3>
+                    <p>掌握 DOM 操作、事件監聽（Event Listening），以及利用 Fetch/Async/Await 進行前後端 API 的資料傳輸。</p>
+                </div>
+                <div class="grid-item">
+                    <h3><i class="fa-solid fa-database"></i> 雲端資料庫整合</h3>
+                    <p>學習關聯式資料庫（Relational Database）設計、CRUD 核心操作，並利用 BaaS 平台實作生產環境的資料部署。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="project" class="section-card">
+            <h2 class="section-title"><i class="fa-solid fa-star"></i> 期末專題介紹 / Final Project</h2>
+            <div class="project-info">
+                <h3>專題名稱：校園匿名即時互動論壇系統</h3>
+                <p><strong>開發動機：</strong> 為了將課堂學到的靜態網頁美學與動態資料庫進行高難度整合。本專題旨在模擬 Dcard 與 PTT，打造一個高流暢度、零延遲、免登入的校園心聲交流平台。</p>
+                <p><strong>核心技術：</strong> 前端 Vanilla JS 渲染 + 後端雲端資料庫 Supabase + 安全 RLS 存取政策 + GitHub Pages 靜態託管。</p>
+            </div>
+        </section>
+
+        <section id="forum" class="section-card">
+            <h2 class="section-title"><i class="fa-solid fa-comments"></i> Campus Echo 匿名交流廣場</h2>
+            <p class="section-subtitle">下方表單輸入的內容將會【即時寫入雲端資料庫】，並動態更新在看板上！</p>
+
+            <div class="post-box">
+                <h3><i class="fa-solid fa-pen-to-square"></i> 發表新迴聲</h3>
+                <form id="post-form">
+                    <div class="input-group">
+                        <input type="text" id="post-title" placeholder="輸入文章標題 (例如：微積分期末考好難...)" required>
+                    </div>
+                    <div class="input-group">
+                        <textarea id="post-content" placeholder="說說你的校園心聲吧，這裡沒有人知道你是誰..." rows="4" required></textarea>
+                    </div>
+                    <button type="submit" class="btn-submit"><i class="fa-solid fa-paper-plane"></i> 發布匿名貼文</button>
+                </form>
+            </div>
+
+            <div class="feed-container">
+                <h3><i class="fa-solid fa-list"></i> 即時動態牆</h3>
+                <div id="loading-status" class="status-msg">
+                    <i class="fa-solid fa-spinner fa-spin"></i> 正在與雲端 PostgreSQL 資料庫建立連線...
+                </div>
+                <div id="posts-feed"></div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer class="footer">
+        <p>© 2026 Campus Echo 網頁程式設計期末專題展示. All Rights Reserved.</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
