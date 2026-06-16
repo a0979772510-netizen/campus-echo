@@ -191,6 +191,11 @@ input[type="text"]:focus, textarea:focus {
     font-weight: bold;
 }
 
+.post-time {
+    font-size: 0.8rem;
+    color: #718096;
+}
+
 .post-card-title {
     font-size: 1.15rem;
     margin-bottom: 10px;
@@ -245,16 +250,6 @@ input[type="text"]:focus, textarea:focus {
     padding: 40px 0;
 }
 
-/* 頁尾 */
-.footer {
-    text-align: center;
-    padding: 20px 0;
-    color: #4a5568;
-    font-size: 0.85rem;
-    border-top: 1px solid #151f32;
-    margin-top: auto;
-}
-
 /* ==========================================
    6. 留言回覆區排版美化
    ========================================== */
@@ -295,7 +290,7 @@ input[type="text"]:focus, textarea:focus {
     padding: 8px 12px !important;
     font-size: 0.88rem !important;
     border-radius: 6px !important;
-    color: #fff;
+    color: #ffffff !important;
 }
 
 .comment-submit-btn {
@@ -313,4 +308,16 @@ input[type="text"]:focus, textarea:focus {
 .comment-submit-btn:hover {
     background-color: #00ecc6;
     color: #0b111e;
+}
+
+/* ==========================================
+   7. 頁尾樣式
+   ========================================== */
+.footer {
+    text-align: center;
+    padding: 20px 0;
+    color: #4a5568;
+    font-size: 0.85rem;
+    border-top: 1px solid #151f32;
+    margin-top: auto;
 }
