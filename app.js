@@ -1,21 +1,20 @@
 // ==========================================
 // 1. 初始化 Supabase 帳戶連接資訊
 // ==========================================
-const SUPABASE_URL = 'https://uzusjdbhhfimynkncrxf.supabase.co'; 
-const SUPABASE_ANON_KEY = 'sbp_publishable_RndzWlY2E2EHH1NWRM3A_hsIpg-SO'; // 填入你原本長長的那串 anon key
+const SUPABASE_URL = 'https://uzusjobhfiznykncrfxf.supabase.co'; 
+const SUPABASE_ANON_KEY = 'sb_publishable_Rn8znWY2E2EHHZE9wVGM1A_hs1pg-Sb'; 
 
-// 確保全域只宣告一次 supabase 物件，防止 Identifier has already been declared 報錯
 const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 if (!supabase) {
-    console.error("Supabase SDK 載入失敗，請檢查 forum.html 是否有引入 CDN！");
+    console.error("Supabase SDK 載入失敗！");
 }
 
 const postForm = document.getElementById('postForm');
 const postsContainer = document.getElementById('postsContainer');
 const statusMessage = document.getElementById('statusMessage');
 
-// 按讚本地儲存管理 (防止重複按讚，支援收回讚)
+// 按讚本地儲存
 function getLikedPosts() {
     const liked = localStorage.getItem('likedPosts');
     return liked ? JSON.parse(liked) : [];
@@ -31,18 +30,16 @@ function toggleLocalLike(postId) {
     localStorage.setItem('likedPosts', JSON.stringify(liked));
 }
 
-// 防止 XSS 攻擊的安全過濾函式
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
 // ==========================================
-// 2. 主要渲染：同時撈取「貼文」與「留言」
+// 2. 撈取貼文與留言並更新畫面
 // ==========================================
 async function fetchPosts() {
     try {
-        // 抓取貼文列表
         const { data: posts, error: postError } = await supabase
             .from('posts')
             .select('*')
@@ -50,7 +47,6 @@ async function fetchPosts() {
 
         if (postError) throw postError;
 
-        // 抓取留言列表
         const { data: comments, error: commentError } = await supabase
             .from('comments')
             .select('*')
@@ -76,7 +72,6 @@ async function fetchPosts() {
             const isLiked = likedPosts.includes(post.id);
             const heartClass = isLiked ? 'heart-btn liked' : 'heart-btn';
 
-            // 過濾出屬於這篇貼文的留言
             const postComments = comments ? comments.filter(c => c.post_id === post.id) : [];
             let commentsHtml = '';
             
@@ -91,6 +86,7 @@ async function fetchPosts() {
 
             const card = document.createElement('div');
             card.className = 'post-card';
+            // 🌟 關鍵修正：將 post.id 確實綁定在按鈕與輸入框上，確保 submitComment 能精準拿到真正的 uuid
             card.innerHTML = `
                 <div class="post-header">
                     <span class="post-avatar">👤 匿名同學</span>
@@ -109,11 +105,20 @@ async function fetchPosts() {
                     <div class="comments-list">${commentsHtml}</div>
                     <div class="comment-form-group">
                         <input type="text" id="input-${post.id}" placeholder="寫下你的匿名回覆..." class="comment-input">
-                        <button type="button" onclick="submitComment('${post.id}')" class="comment-submit-btn">回覆</button>
+                        <button type="button" data-postid="${post.id}" class="comment-submit-btn">回覆</button>
                     </div>
                 </div>
             `;
             postsContainer.appendChild(card);
+        });
+
+        // 動態綁定所有留言按鈕的點擊事件，徹底切斷與表單 submit 的關聯
+        document.querySelectorAll('.comment-submit-btn').forEach(button => {
+            button.addEventListener('click', async function(e) {
+                e.preventDefault();
+                const targetPostId = this.getAttribute('data-postid');
+                await submitComment(targetPostId);
+            });
         });
 
     } catch (error) {
@@ -130,7 +135,6 @@ window.handleLikeClick = async function(postId, currentLikes) {
     const isAlreadyLiked = likedPosts.includes(postId);
     const newLikesCount = isAlreadyLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1;
 
-    // 先跑畫面視覺更新（優雅降級體驗）
     toggleLocalLike(postId);
     fetchPosts(); 
 
@@ -138,8 +142,8 @@ window.handleLikeClick = async function(postId, currentLikes) {
         const { error } = await supabase.from('posts').update({ likes: newLikesCount }).eq('id', postId);
         if (error) throw error;
     } catch (error) {
-        console.error("按讚失敗，回滾狀態:", error);
-        toggleLocalLike(postId); // 失敗則回滾
+        console.error("按讚失敗:", error);
+        toggleLocalLike(postId);
         fetchPosts();
     }
 };
@@ -174,7 +178,7 @@ if (postForm) {
 // ==========================================
 // 5. 處理「發布新留言」
 // ==========================================
-window.submitComment = async function(postId) {
+async function submitComment(postId) {
     const inputElement = document.getElementById(`input-${postId}`);
     if (!inputElement) return;
     
@@ -186,20 +190,20 @@ window.submitComment = async function(postId) {
     }
 
     try {
-        // 寫入 comments 資料表
+        // 確實將轉換成 uuid 格式的 postId 送往後端
         const { error } = await supabase
             .from('comments')
             .insert([{ post_id: postId, content: content }]);
 
         if (error) throw error;
         
-        inputElement.value = ''; // 清空特定輸入框
-        await fetchPosts();      // 重新整理貼文牆與留言區
+        inputElement.value = ''; 
+        await fetchPosts();      
     } catch (error) {
         alert('留言失敗，請確認 Supabase Table 與 RLS 開啟！');
         console.error("留言詳細錯誤資訊:", error);
     }
-};
+}
 
 // 頁面加載完成後自動初始化
 if (postsContainer) {
