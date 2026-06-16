@@ -27,6 +27,8 @@ async function fetchPosts() {
 
         const card = document.createElement('div');
         card.className = 'post-card';
+        
+        // 這是包含了留言框與美化按鈕的完整結構
         card.innerHTML = `
             <div class="post-header"><span>匿名同學</span></div>
             <h4>${post.title}</h4>
