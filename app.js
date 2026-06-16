@@ -4,27 +4,14 @@
 const SUPABASE_URL = 'https://uzusjobhfiznykncrfxf.supabase.co'; 
 const SUPABASE_ANON_KEY = 'sb_publishable_Rn8znWY2E2EHHZE9wVGM1A_hs1pg-Sb'; 
 
-let supabaseClient;
-try {
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} catch (err) { console.error(err); }
-
-const postForm = document.getElementById('postForm');
+let supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const postsContainer = document.getElementById('postsContainer');
 
 // ==========================================
-// 2. 撈取與渲染
-// ==========================================
-// ==========================================
-// 核心：撈取資料 (保持你原本的 UI 結構)
-// ==========================================
-// ==========================================
-// 1. 核心：渲染函數 (不破壞原樣式)
+// 2. 渲染邏輯 (保留你原本的 Class 結構)
 // ==========================================
 async function fetchPosts() {
-    if (!supabaseClient) return;
-    
-    // 獲取貼文與留言
+    // 獲取數據
     const { data: posts } = await supabaseClient.from('posts').select('*').order('created_at', { ascending: false });
     const { data: comments } = await supabaseClient.from('comments').select('*');
 
@@ -32,24 +19,29 @@ async function fetchPosts() {
     const likedPosts = JSON.parse(localStorage.getItem('likedPosts') || '[]');
 
     posts.forEach(post => {
-        const postComments = comments ? comments.filter(c => c.post_id === post.id) : [];
         const isLiked = likedPosts.includes(String(post.id));
+        const postComments = comments ? comments.filter(c => c.post_id === post.id) : [];
 
         const card = document.createElement('div');
-        card.className = 'post-card'; 
-        // 這裡維持你原本的 HTML 結構與 Class，確保 CSS 不會失效
+        card.className = 'post-card'; // 這裡維持你原本的 CSS Class
+        
+        // 這裡將「結構」與「變數」分離，避免覆蓋掉你的按鈕樣式
         card.innerHTML = `
+            <div class="post-header"><span>匿名同學</span></div>
             <h4>${post.title}</h4>
             <p>${post.content}</p>
-            <button class="heart-btn ${isLiked ? 'liked' : ''}" onclick="handleLikeClick('${post.id}', ${post.likes_count})">
+            
+            <button class="heart-btn ${isLiked ? 'liked' : ''}" onclick="handleLikeClick('${post.id}', ${post.likes_count || 0})">
                 ❤ <span>讚 ${post.likes_count || 0}</span>
             </button>
+
             <div class="comments-list">
-                ${postComments.map(c => `<p class="comment-item">匿名同學: ${c.content}</p>`).join('')}
+                ${postComments.map(c => `<p class="comment-item">匿名: ${c.content}</p>`).join('')}
             </div>
+            
             <div class="comment-input-wrapper">
                 <input type="text" id="input-${post.id}" placeholder="回覆...">
-                <button onclick="submitComment('${post.id}')">送出</button>
+                <button class="submit-comment-btn" onclick="submitComment('${post.id}')">送出回覆</button>
             </div>
         `;
         postsContainer.appendChild(card);
@@ -57,57 +49,31 @@ async function fetchPosts() {
 }
 
 // ==========================================
-// 按讚邏輯：只切換 class，不改動 HTML 結構
+// 3. 按讚 (只改狀態，不改結構)
 // ==========================================
 window.handleLikeClick = async function(postId, currentLikes) {
-    const numericId = parseInt(postId, 10);
-    const likedPosts = JSON.parse(localStorage.getItem('likedPosts') || '[]');
-    const isAlreadyLiked = likedPosts.includes(String(postId));
-    const newCount = isAlreadyLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1;
+    const isLiked = JSON.parse(localStorage.getItem('likedPosts') || '[]').includes(String(postId));
+    const newCount = isLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1;
+    
+    // 更新本地狀態
+    let liked = JSON.parse(localStorage.getItem('likedPosts') || '[]');
+    liked = isLiked ? liked.filter(id => id !== String(postId)) : [...liked, String(postId)];
+    localStorage.setItem('likedPosts', JSON.stringify(liked));
 
-    // 更新本地狀態與 UI
-    const updatedLiked = isAlreadyLiked 
-        ? likedPosts.filter(id => id !== String(postId)) 
-        : [...likedPosts, String(postId)];
-    localStorage.setItem('likedPosts', JSON.stringify(updatedLiked));
-
-    // 重新載入以更新讚數 (或你也可以寫入後直接修改該按鈕的文字)
-    await supabaseClient.from('posts').update({ likes_count: newCount }).eq('id', numericId);
+    await supabaseClient.from('posts').update({ likes_count: newCount }).eq('id', parseInt(postId, 10));
     fetchPosts();
 };
 
 // ==========================================
-// 4. 回覆功能
+// 4. 送出回覆
 // ==========================================
 window.submitComment = async function(postId) {
     const input = document.getElementById(`input-${postId}`);
     if (!input || !input.value.trim()) return;
 
-    try {
-        const { error } = await supabaseClient
-            .from('comments')
-            .insert([{ post_id: parseInt(postId, 10), content: input.value.trim() }]);
-
-        if (error) throw error;
-        input.value = '';
-        fetchPosts();
-    } catch (err) {
-        console.error("留言失敗", err);
-    }
+    await supabaseClient.from('comments').insert([{ post_id: parseInt(postId, 10), content: input.value.trim() }]);
+    input.value = '';
+    fetchPosts();
 };
-
-// ==========================================
-// 5. 初始化與發文
-// ==========================================
-if (postForm) {
-    postForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const title = document.getElementById('postTitle').value.trim();
-        const content = document.getElementById('postContent').value.trim();
-        await supabaseClient.from('posts').insert([{ title, content }]);
-        postForm.reset();
-        fetchPosts();
-    });
-}
 
 fetchPosts();
