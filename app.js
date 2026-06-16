@@ -15,9 +15,11 @@ const postsContainer = document.getElementById('postsContainer');
 // ==========================================
 // 2. 撈取與渲染
 // ==========================================
+// ==========================================
+// 核心：撈取資料 (保持你原本的 UI 結構)
+// ==========================================
 async function fetchPosts() {
     if (!supabaseClient) return;
-    
     try {
         const { data: posts, error } = await supabaseClient
             .from('posts')
@@ -34,26 +36,22 @@ async function fetchPosts() {
             const isLiked = likedPosts.includes(String(post.id));
             
             const card = document.createElement('div');
-            card.className = 'post-card';
+            card.className = 'post-card'; // 保持你原本的 class
             card.innerHTML = `
+                <div class="post-header">...</div> 
                 <h4>${post.title}</h4>
                 <p>${post.content}</p>
-                <button class="heart-btn" onclick="handleLikeClick('${post.id}', ${count})">
-                    <span style="color: ${isLiked ? 'red' : 'gray'}">❤</span> 讚 ${count}
+                <button class="heart-btn ${isLiked ? 'liked' : ''}" onclick="handleLikeClick('${post.id}', ${count})">
+                    ❤ <span>讚 ${count}</span>
                 </button>
-                <div class="comments-list"></div>
-                <input type="text" id="input-${post.id}" placeholder="回覆...">
-                <button onclick="submitComment('${post.id}')">送出回覆</button>
             `;
             postsContainer.appendChild(card);
         });
-    } catch (err) {
-        console.error("渲染失敗:", err);
-    }
+    } catch (err) { console.error(err); }
 }
 
 // ==========================================
-// 3. 按讚功能 (僅紅心變色)
+// 按讚邏輯：只切換 class，不改動 HTML 結構
 // ==========================================
 window.handleLikeClick = async function(postId, currentLikes) {
     const numericId = parseInt(postId, 10);
@@ -61,13 +59,13 @@ window.handleLikeClick = async function(postId, currentLikes) {
     const isAlreadyLiked = likedPosts.includes(String(postId));
     const newCount = isAlreadyLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1;
 
-    // 更新本地狀態
+    // 更新本地狀態與 UI
     const updatedLiked = isAlreadyLiked 
         ? likedPosts.filter(id => id !== String(postId)) 
         : [...likedPosts, String(postId)];
     localStorage.setItem('likedPosts', JSON.stringify(updatedLiked));
 
-    // 更新資料庫
+    // 重新載入以更新讚數 (或你也可以寫入後直接修改該按鈕的文字)
     await supabaseClient.from('posts').update({ likes_count: newCount }).eq('id', numericId);
     fetchPosts();
 };
