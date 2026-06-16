@@ -1,20 +1,20 @@
 // ==========================================
-// 1. 初始化連線實例 (改名為 supabaseClient 徹底避開 CDN 全域命名衝突)
+// 1. 初始化連線實例 (標準 CDN 引入與防錯機制)
 // ==========================================
-const SUPABASE_URL = 'https://uzusjobhfiznykncrfxf.supabase.co'; 
+const SUPABASE_URL = 'https://uzusjobhfiznykncrfxf.supabase.co'; // 確保為 fjmyn 正確網址
 const SUPABASE_ANON_KEY = 'sb_publishable_Rn8znWY2E2EHHZE9wVGM1A_hs1pg-Sb'; 
 
-// 🌟 這裡改成 supabaseClient，確保絕不與 window.supabase 撞名
 let supabaseClient;
 
 try {
+    // 🌟 標準安全初始化：明確使用 window.supabase.createClient
     if (window.supabase && typeof window.supabase.createClient === 'function') {
         supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     } else {
-        console.error("找不到 Supabase SDK 的 createClient 方法！");
+        console.error("找不到 Supabase SDK 的 createClient 方法，請確保 HTML 有正確引入 CDN！");
     }
 } catch (err) {
-    console.error("初始化 Supabase 時發生錯誤:", err);
+    console.error("初始化 Supabase 時發生異常錯誤:", err);
 }
 
 const postForm = document.getElementById('postForm');
@@ -44,16 +44,16 @@ function escapeHtml(str) {
 }
 
 // ==========================================
-// 2. 撈取「貼文」與「留言」並渲染畫面
+// 2. 主要渲染：撈取「貼文」與「留言」
 // ==========================================
 async function fetchPosts() {
     try {
         if (!supabaseClient) {
-            console.error("Supabase 連線未建立，無法撈取資料。");
+            if (statusMessage) statusMessage.innerHTML = `❌ 連線失敗: Supabase SDK 未正確載入`;
             return;
         }
 
-        // 1. 撈取貼文
+        // 撈取貼文
         const { data: posts, error: postError } = await supabaseClient
             .from('posts')
             .select('*')
@@ -61,7 +61,7 @@ async function fetchPosts() {
 
         if (postError) throw postError;
 
-        // 2. 撈取留言
+        // 撈取留言
         const { data: comments, error: commentError } = await supabaseClient
             .from('comments')
             .select('*')
@@ -87,7 +87,7 @@ async function fetchPosts() {
             const isLiked = likedPosts.includes(post.id);
             const heartClass = isLiked ? 'heart-btn liked' : 'heart-btn';
 
-            // 過濾屬於當前貼文的留言
+            // 過濾出屬於該貼文的留言
             const postComments = comments ? comments.filter(c => c.post_id === post.id) : [];
             let commentsHtml = '';
             
@@ -127,7 +127,7 @@ async function fetchPosts() {
             postsContainer.appendChild(card);
         });
 
-        // 動態綁定留言按鈕點擊事件，傳入正確的 uuid
+        // 綁定留言回覆點擊事件
         document.querySelectorAll('.comment-submit-btn').forEach(button => {
             button.addEventListener('click', async function(e) {
                 e.preventDefault();
@@ -137,8 +137,8 @@ async function fetchPosts() {
         });
 
     } catch (error) {
-        console.error("撈取資料失敗:", error);
-        if (statusMessage) statusMessage.innerHTML = `❌ 連線失敗: ${error.message}`;
+        console.error("抓取貼文失敗資訊:", error);
+        if (statusMessage) statusMessage.innerHTML = `❌ 連線失敗: ${error.message || '無法與資料庫建立同步'}`;
     }
 }
 
@@ -158,8 +158,8 @@ window.handleLikeClick = async function(postId, currentLikes) {
         const { error } = await supabaseClient.from('posts').update({ likes: newLikesCount }).eq('id', postId);
         if (error) throw error;
     } catch (error) {
-        console.error("按讚更新失敗:", error);
-        toggleLocalLike(postId); // 失敗則回滾狀態
+        console.error("按讚失敗:", error);
+        toggleLocalLike(postId);
         fetchPosts();
     }
 };
@@ -185,7 +185,7 @@ if (postForm) {
             postForm.reset();
             await fetchPosts();
         } catch (error) {
-            console.error("發文失敗:", error);
+            console.error(error);
             alert('發文失敗！');
         } finally {
             submitBtn.disabled = false;
@@ -218,12 +218,12 @@ async function submitComment(postId) {
         inputElement.value = ''; 
         await fetchPosts();      
     } catch (error) {
-        alert('留言失敗，請確認 Supabase Table 與 RLS 開啟！');
+        alert('留言失敗，請檢查網路連線狀態！');
         console.error("留言詳細錯誤資訊:", error);
     }
 }
 
-// 頁面載入完成後自動初始化
+// 頁面加載完成後自動初始化
 if (postsContainer) {
     fetchPosts();
 }
