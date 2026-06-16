@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Echo - 討論廣場</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">🚀 Campus Echo</a>
+            <div class="nav-links">
+                <a href="index.html">首頁/專題介紹</a>
+                <a href="forum.html" class="active">討論廣場</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="card">
+            <h3>📝 發表新動態</h3>
+            <form id="postForm">
+                <div class="form-group">
+                    <input type="text" id="postTitle" placeholder="輸入文章標題..." required>
+                </div>
+                <div class="form-group">
+                    <textarea id="postContent" placeholder="說說你的校園心聲吧..." rows="4" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" id="submitBtn">📢 發布匿名貼文</button>
+            </form>
+        </section>
+
+        <section class="card">
+            <h3>💬 即時動態牆</h3>
+            <div id="statusMessage" class="status-msg">正在與 PostgreSQL 資料庫建立連線...</div>
+            <div id="postsContainer"></div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>© 2026 Campus Echo 網頁程式設計期末專題著作權所有.</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

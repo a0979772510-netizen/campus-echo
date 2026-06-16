@@ -1,141 +1,183 @@
-// ==========================================================================
-// 1. 初始化 Supabase 客戶端連線（修正變數名稱重複問題）
-// ==========================================================================
-const SUPABASE_URL = 'https://uzusjobhfiznykncrfxf.supabase.co'; // <-- 填入你的 Project URL
-const SUPABASE_ANON_KEY = 'sb_publishable_Rn8znWY2E2EHHZE9wVGM1A_hs1pg-Sb'; // <-- 填入你的 anon public key
+// ==========================================
+// 1. 初始化 Supabase 帳戶連接資訊 (變數名修正，防止重複宣告報錯)
+// ==========================================
+const CONFIG_URL = 'https://uzusjobhfiznykncrfxf.supabase.co'; 
+const CONFIG_KEY = 'sb_publishable_Rn8znWY2E2EHHZE9wVGM1A_hs1pg-Sb'; // 填入你原本長長的那串 anon key
 
-// 我們把變數名稱從 supabase 改成 supabaseClient，避開衝突！
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const api = supabase.createClient(CONFIG_URL, CONFIG_KEY);
 
-// 抓取 HTML 畫面中的各個重要元素
-const postForm = document.getElementById('post-form');
-const postTitleInput = document.getElementById('post-title');
-const postContentInput = document.getElementById('post-content');
-const postsFeed = document.getElementById('posts-feed');
-const loadingStatus = document.getElementById('loading-status');
+const postForm = document.getElementById('postForm');
+const postsContainer = document.getElementById('postsContainer');
+const statusMessage = document.getElementById('statusMessage');
 
-// ==========================================================================
-// 2. 從雲端資料庫讀取貼文並渲染到畫面上 (Read)
-// ==========================================================================
+// 按讚本地儲存管理
+function getLikedPosts() {
+    const liked = localStorage.getItem('likedPosts');
+    return liked ? JSON.parse(liked) : [];
+}
+function toggleLocalLike(postId) {
+    let liked = getLikedPosts();
+    if (liked.includes(postId)) liked = liked.filter(id => id !== postId);
+    else liked.push(postId);
+    localStorage.setItem('likedPosts', JSON.stringify(liked));
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+// ==========================================
+// 2. 主要渲染：抓取貼文與對應留言
+// ==========================================
 async function fetchPosts() {
     try {
-        // 使用修正後的 supabaseClient
-        const { data: posts, error } = await supabaseClient
+        // 抓取貼文
+        const { data: posts, error: postError } = await api
             .from('posts')
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (postError) throw postError;
 
-        // 隱藏「連線中」的提示文字
-        loadingStatus.style.display = 'none';
-        
-        // 清空目前的動態牆
-        postsFeed.innerHTML = '';
+        // 抓取所有留言
+        const { data: comments, error: commentError } = await api
+            .from('comments')
+            .select('*')
+            .order('created_at', { ascending: true });
+
+        if (commentError) throw commentError;
+
+        if (statusMessage) statusMessage.style.display = 'none';
+        postsContainer.innerHTML = '';
 
         if (posts.length === 0) {
-            postsFeed.innerHTML = '<div class="status-msg">目前還沒有任何迴聲，快來搶頭香吧！</div>';
+            postsContainer.innerHTML = '<p class="no-posts">目前廣場空空如也！</p>';
             return;
         }
 
-        // 轉成 HTML 卡片
+        const likedPosts = getLikedPosts();
+
         posts.forEach(post => {
-            const postDate = new Date(post.created_at).toLocaleString('zh-TW', {
-                month: 'numeric',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
+            const formattedTime = new Date(post.created_at).toLocaleString('zh-TW', {
+                month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
+            });
+
+            const isLiked = likedPosts.includes(post.id);
+            const heartClass = isLiked ? 'heart-btn liked' : 'heart-btn';
+
+            // 過濾出屬於這篇貼文的留言
+            const postComments = comments ? comments.filter(c => c.post_id === post.id) : [];
+            let commentsHtml = '';
+            
+            postComments.forEach(c => {
+                commentsHtml += `
+                    <div class="comment-item">
+                        <span class="comment-user">B${postComments.indexOf(c) + 1}：</span>
+                        <span class="comment-text">${escapeHtml(c.content)}</span>
+                    </div>
+                `;
             });
 
             const card = document.createElement('div');
-            card.className = 'echo-card';
+            card.className = 'post-card';
             card.innerHTML = `
-                <div class="echo-header">
-                    <span class="echo-title"><i class="fa-solid fa-user-secret"></i> ${escapeHtml(post.title)}</span>
-                    <span class="echo-time">${postDate}</span>
+                <div class="post-header">
+                    <span class="post-avatar">👤 匿名同學</span>
+                    <span class="post-time">${formattedTime}</span>
                 </div>
-                <div class="echo-content">${escapeHtml(post.content)}</div>
-                <div class="echo-footer">
-                    <button class="btn-like" onclick="likePost('${post.id}', ${post.likes_count}, this)">
-                        <i class="fa-regular fa-heart"></i> 讚 <span>${post.likes_count}</span>
+                <h4 class="post-card-title">${escapeHtml(post.title)}</h4>
+                <p class="post-card-content">${escapeHtml(post.content)}</p>
+                
+                <div class="post-actions">
+                    <button class="${heartClass}" onclick="handleLikeClick('${post.id}', ${post.likes || 0})">
+                        ❤ <span>讚 ${post.likes || 0}</span>
                     </button>
                 </div>
+
+                <div class="comments-section">
+                    <div class="comments-list">${commentsHtml}</div>
+                    <div class="comment-form-group">
+                        <input type="text" id="input-${post.id}" placeholder="寫下你的匿名回覆..." class="comment-input">
+                        <button onclick="submitComment('${post.id}')" class="comment-submit-btn">回覆</button>
+                    </div>
+                </div>
             `;
-            postsFeed.appendChild(card);
+            postsContainer.appendChild(card);
         });
 
     } catch (error) {
-        console.error('讀取資料庫失敗:', error.message);
-        loadingStatus.innerHTML = `<i class="fa-solid fa-circle-exclamation" style="color: #ef4444;"></i> 連線失敗: ${error.message}`;
+        console.error(error);
+        if (statusMessage) statusMessage.innerHTML = `❌ 連線失敗: ${error.message}`;
     }
 }
 
-// ==========================================================================
-// 3. 發表新貼文到雲端資料庫 (Create)
-// ==========================================================================
-postForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
+// ==========================================
+// 3. 處理「按讚 / 收回讚」
+// ==========================================
+window.handleLikeClick = async function(postId, currentLikes) {
+    const likedPosts = getLikedPosts();
+    const isAlreadyLiked = likedPosts.includes(postId);
+    const newLikesCount = isAlreadyLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1;
 
-    const title = postTitleInput.value.trim();
-    const content = postContentInput.value.trim();
-
-    if (!title || !content) return;
+    toggleLocalLike(postId);
+    fetchPosts(); 
 
     try {
-        // 使用修正後的 supabaseClient
-        const { error } = await supabaseClient
-            .from('posts')
-            .insert([{ title: title, content: content }]);
-
+        const { error } = await api.from('posts').update({ likes: newLikesCount }).eq('id', postId);
         if (error) throw error;
-
-        postForm.reset();
-        await fetchPosts();
-
     } catch (error) {
-        console.error('新增貼文失敗:', error.message);
-        alert('發文失敗：' + error.message);
-    }
-});
-
-// ==========================================================================
-// 4. 按讚功能 (Update)
-// ==========================================================================
-window.likePost = async function(postId, currentLikes, buttonElement) {
-    try {
-        const ghostSpan = buttonElement.querySelector('span');
-        const heartIcon = buttonElement.querySelector('i');
-        ghostSpan.textContent = currentLikes + 1;
-        heartIcon.className = 'fa-solid fa-heart';
-        heartIcon.style.color = '#ef4444';
-
-        // 使用修正後的 supabaseClient
-        const { error } = await supabaseClient
-            .from('posts')
-            .update({ likes_count: currentLikes + 1 })
-            .eq('id', postId);
-
-        if (error) throw error;
-
-    } catch (error) {
-        console.error('按讚同步失敗:', error.message);
+        toggleLocalLike(postId);
         fetchPosts();
     }
 };
 
-// ==========================================================================
-// 5. 防止 XSS 攻擊
-// ==========================================================================
-function escapeHtml(string) {
-    return String(string).replace(/[&<>"']/g, function (s) {
-        return {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#39;'
-        }[s];
+// ==========================================
+// 4. 處理「發布新貼文」
+// ==========================================
+if (postForm) {
+    postForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const title = document.getElementById('postTitle').value.trim();
+        const content = document.getElementById('postContent').value.trim();
+        const submitBtn = document.getElementById('submitBtn');
+
+        if (!title || !content) return;
+        submitBtn.disabled = true;
+
+        try {
+            const { error } = await api.from('posts').insert([{ title, content, likes: 0 }]);
+            if (error) throw error;
+            postForm.reset();
+            await fetchPosts();
+        } catch (error) {
+            alert('發文失敗！');
+        } finally {
+            submitBtn.disabled = false;
+        }
     });
 }
 
-document.addEventListener('DOMContentLoaded', fetchPosts);
+// ==========================================
+// 5. 處理「發布新留言」
+// ==========================================
+window.submitComment = async function(postId) {
+    const inputElement = document.getElementById(`input-${postId}`);
+    const content = inputElement.value.trim();
+
+    if (!content) return;
+
+    try {
+        const { error } = await api.from('comments').insert([{ post_id: postId, content: content }]);
+        if (error) throw error;
+        inputElement.value = ''; // 清空輸入框
+        await fetchPosts();      // 重新整理貼文牆
+    } catch (error) {
+        alert('留言失敗，請確認 Supabase Table 與 RLS 開啟！');
+        console.error(error);
+    }
+};
+
+if (postsContainer) {
+    fetchPosts();
+}
