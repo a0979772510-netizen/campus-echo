@@ -231,7 +231,6 @@ input[type="text"]:focus, textarea:focus {
 }
 
 .heart-btn.liked {
-    background-color: #ffe3e3;
     color: #e53e3e;
     border-color: #feb2b2;
 }
