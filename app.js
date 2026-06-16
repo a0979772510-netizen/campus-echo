@@ -76,7 +76,7 @@ async function fetchPosts() {
             });
 
             // 🌟 修正：讀取 likes_count 欄位
-            const likesCount = post.likes_count || 0;
+            const likes_Count = post.likes_count || 0;
             const isLiked = likedPosts.includes(String(post.id));
             const heartClass = isLiked ? 'heart-btn liked' : 'heart-btn';
             const postComments = comments ? comments.filter(c => String(c.post_id) === String(post.id)) : [];
@@ -88,8 +88,8 @@ async function fetchPosts() {
                 <h4 class="post-card-title">${escapeHtml(post.title)}</h4>
                 <p class="post-card-content">${escapeHtml(post.content)}</p>
                 <div class="post-actions">
-                    <button class="${heartClass}" onclick="handleLikeClick('${post.id}', ${likesCount})">
-                        ❤ <span>讚 ${likesCount}</span>
+                    <button class="${heartClass}" onclick="handleLikeClick('${post.id}', ${likes_Count})">
+                        ❤ <span>讚 ${likes_Count}</span>
                     </button>
                 </div>
                 <div class="comments-section">
