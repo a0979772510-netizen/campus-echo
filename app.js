@@ -18,36 +18,42 @@ const postsContainer = document.getElementById('postsContainer');
 // ==========================================
 // 核心：撈取資料 (保持你原本的 UI 結構)
 // ==========================================
+// ==========================================
+// 1. 核心：渲染函數 (不破壞原樣式)
+// ==========================================
 async function fetchPosts() {
     if (!supabaseClient) return;
-    try {
-        const { data: posts, error } = await supabaseClient
-            .from('posts')
-            .select('*')
-            .order('created_at', { ascending: false });
+    
+    // 獲取貼文與留言
+    const { data: posts } = await supabaseClient.from('posts').select('*').order('created_at', { ascending: false });
+    const { data: comments } = await supabaseClient.from('comments').select('*');
 
-        if (error) throw error;
-        
-        postsContainer.innerHTML = '';
-        const likedPosts = JSON.parse(localStorage.getItem('likedPosts') || '[]');
+    postsContainer.innerHTML = '';
+    const likedPosts = JSON.parse(localStorage.getItem('likedPosts') || '[]');
 
-        posts.forEach(post => {
-            const count = post.likes_count || 0;
-            const isLiked = likedPosts.includes(String(post.id));
-            
-            const card = document.createElement('div');
-            card.className = 'post-card'; // 保持你原本的 class
-            card.innerHTML = `
-                <div class="post-header">...</div> 
-                <h4>${post.title}</h4>
-                <p>${post.content}</p>
-                <button class="heart-btn ${isLiked ? 'liked' : ''}" onclick="handleLikeClick('${post.id}', ${count})">
-                    ❤ <span>讚 ${count}</span>
-                </button>
-            `;
-            postsContainer.appendChild(card);
-        });
-    } catch (err) { console.error(err); }
+    posts.forEach(post => {
+        const postComments = comments ? comments.filter(c => c.post_id === post.id) : [];
+        const isLiked = likedPosts.includes(String(post.id));
+
+        const card = document.createElement('div');
+        card.className = 'post-card'; 
+        // 這裡維持你原本的 HTML 結構與 Class，確保 CSS 不會失效
+        card.innerHTML = `
+            <h4>${post.title}</h4>
+            <p>${post.content}</p>
+            <button class="heart-btn ${isLiked ? 'liked' : ''}" onclick="handleLikeClick('${post.id}', ${post.likes_count})">
+                ❤ <span>讚 ${post.likes_count || 0}</span>
+            </button>
+            <div class="comments-list">
+                ${postComments.map(c => `<p class="comment-item">匿名同學: ${c.content}</p>`).join('')}
+            </div>
+            <div class="comment-input-wrapper">
+                <input type="text" id="input-${post.id}" placeholder="回覆...">
+                <button onclick="submitComment('${post.id}')">送出</button>
+            </div>
+        `;
+        postsContainer.appendChild(card);
+    });
 }
 
 // ==========================================
