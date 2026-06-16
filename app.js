@@ -1,20 +1,27 @@
 // ==========================================
-// 1. 初始化 Supabase 帳戶連接資訊
+// 1. 初始化 Supabase 帳戶連接資訊 (相容 CDN 全域變數)
 // ==========================================
-const SUPABASE_URL = 'https://uzusjobhfiznykncrfxf.supabase.co'; 
+const SUPABASE_URL = 'https://uzusjdbhhfimynkncrxf.supabase.co'; 
 const SUPABASE_ANON_KEY = 'sb_publishable_Rn8znWY2E2EHHZE9wVGM1A_hs1pg-Sb'; 
 
-const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-
-if (!supabase) {
-    console.error("Supabase SDK 載入失敗！");
+// 🌟 核心修正：如果 window.supabase.createClient 存在，就建立實例；否則直接沿用全域的 supabase
+let supabaseInstance;
+if (window.supabase && typeof window.supabase.createClient === 'function') {
+    supabaseInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} else if (window.supabase) {
+    supabaseInstance = window.supabase;
+} else {
+    console.error("Supabase SDK 載入失敗，請檢查 HTML 是否正確引入 CDN！");
 }
+
+// 將我們後續要操作的 client 指向這個實例
+const db = supabaseInstance;
 
 const postForm = document.getElementById('postForm');
 const postsContainer = document.getElementById('postsContainer');
 const statusMessage = document.getElementById('statusMessage');
 
-// 按讚本地儲存
+// 按讚本地儲存管理
 function getLikedPosts() {
     const liked = localStorage.getItem('likedPosts');
     return liked ? JSON.parse(liked) : [];
@@ -30,24 +37,29 @@ function toggleLocalLike(postId) {
     localStorage.setItem('likedPosts', JSON.stringify(liked));
 }
 
+// 防止 XSS 攻擊的安全過濾
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
 // ==========================================
-// 2. 撈取貼文與留言並更新畫面
+// 2. 主要渲染：同時撈取「貼文」與「留言」
 // ==========================================
 async function fetchPosts() {
     try {
-        const { data: posts, error: postError } = await supabase
+        if (!db) return;
+
+        // 撈取貼文
+        const { data: posts, error: postError } = await db
             .from('posts')
             .select('*')
             .order('created_at', { ascending: false });
 
         if (postError) throw postError;
 
-        const { data: comments, error: commentError } = await supabase
+        // 撈取留言
+        const { data: comments, error: commentError } = await db
             .from('comments')
             .select('*')
             .order('created_at', { ascending: true });
@@ -72,6 +84,7 @@ async function fetchPosts() {
             const isLiked = likedPosts.includes(post.id);
             const heartClass = isLiked ? 'heart-btn liked' : 'heart-btn';
 
+            // 過濾屬於該貼文的留言
             const postComments = comments ? comments.filter(c => c.post_id === post.id) : [];
             let commentsHtml = '';
             
@@ -86,7 +99,6 @@ async function fetchPosts() {
 
             const card = document.createElement('div');
             card.className = 'post-card';
-            // 🌟 關鍵修正：將 post.id 確實綁定在按鈕與輸入框上，確保 submitComment 能精準拿到真正的 uuid
             card.innerHTML = `
                 <div class="post-header">
                     <span class="post-avatar">👤 匿名同學</span>
@@ -112,7 +124,7 @@ async function fetchPosts() {
             postsContainer.appendChild(card);
         });
 
-        // 動態綁定所有留言按鈕的點擊事件，徹底切斷與表單 submit 的關聯
+        // 綁定留言回覆點擊事件
         document.querySelectorAll('.comment-submit-btn').forEach(button => {
             button.addEventListener('click', async function(e) {
                 e.preventDefault();
@@ -131,6 +143,7 @@ async function fetchPosts() {
 // 3. 處理「按讚 / 收回讚」
 // ==========================================
 window.handleLikeClick = async function(postId, currentLikes) {
+    if (!db) return;
     const likedPosts = getLikedPosts();
     const isAlreadyLiked = likedPosts.includes(postId);
     const newLikesCount = isAlreadyLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1;
@@ -139,7 +152,7 @@ window.handleLikeClick = async function(postId, currentLikes) {
     fetchPosts(); 
 
     try {
-        const { error } = await supabase.from('posts').update({ likes: newLikesCount }).eq('id', postId);
+        const { error } = await db.from('posts').update({ likes: newLikesCount }).eq('id', postId);
         if (error) throw error;
     } catch (error) {
         console.error("按讚失敗:", error);
@@ -154,6 +167,8 @@ window.handleLikeClick = async function(postId, currentLikes) {
 if (postForm) {
     postForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (!db) return;
+        
         const title = document.getElementById('postTitle').value.trim();
         const content = document.getElementById('postContent').value.trim();
         const submitBtn = document.getElementById('submitBtn');
@@ -162,7 +177,7 @@ if (postForm) {
         submitBtn.disabled = true;
 
         try {
-            const { error } = await supabase.from('posts').insert([{ title, content, likes: 0 }]);
+            const { error } = await db.from('posts').insert([{ title, content, likes: 0 }]);
             if (error) throw error;
             postForm.reset();
             await fetchPosts();
@@ -179,6 +194,7 @@ if (postForm) {
 // 5. 處理「發布新留言」
 // ==========================================
 async function submitComment(postId) {
+    if (!db) return;
     const inputElement = document.getElementById(`input-${postId}`);
     if (!inputElement) return;
     
@@ -190,8 +206,7 @@ async function submitComment(postId) {
     }
 
     try {
-        // 確實將轉換成 uuid 格式的 postId 送往後端
-        const { error } = await supabase
+        const { error } = await db
             .from('comments')
             .insert([{ post_id: postId, content: content }]);
 
