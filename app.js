@@ -1,20 +1,19 @@
 // ==========================================
-// 1. 初始化連線實例 (標準 CDN 引入與防錯機制)
+// 1. 初始化連線實例
 // ==========================================
-const SUPABASE_URL = 'https://uzusjobhfiznykncrfxf.supabase.co'; // 確保為 fjmyn 正確網址
+const SUPABASE_URL = 'https://uzusjobhfiznykncrfxf.supabase.co'; 
 const SUPABASE_ANON_KEY = 'sb_publishable_Rn8znWY2E2EHHZE9wVGM1A_hs1pg-Sb'; 
 
 let supabaseClient;
 
 try {
-    // 🌟 標準安全初始化：明確使用 window.supabase.createClient
     if (window.supabase && typeof window.supabase.createClient === 'function') {
         supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     } else {
-        console.error("找不到 Supabase SDK 的 createClient 方法，請確保 HTML 有正確引入 CDN！");
+        console.error("找不到 Supabase SDK 的 createClient 方法！");
     }
 } catch (err) {
-    console.error("初始化 Supabase 時發生異常錯誤:", err);
+    console.error("初始化 Supabase 發生異常:", err);
 }
 
 const postForm = document.getElementById('postForm');
@@ -29,10 +28,12 @@ function getLikedPosts() {
 
 function toggleLocalLike(postId) {
     let liked = getLikedPosts();
-    if (liked.includes(postId)) {
-        liked = liked.filter(id => id !== postId);
+    // 確保轉成字串比對，相容數字與 UUID
+    const idStr = String(postId);
+    if (liked.includes(idStr)) {
+        liked = liked.filter(id => id !== idStr);
     } else {
-        liked.push(postId);
+        liked.push(idStr);
     }
     localStorage.setItem('likedPosts', JSON.stringify(liked));
 }
@@ -44,14 +45,11 @@ function escapeHtml(str) {
 }
 
 // ==========================================
-// 2. 主要渲染：撈取「貼文」與「留言」
+// 2. 撈取「貼文」與「留言」並渲染畫面
 // ==========================================
 async function fetchPosts() {
     try {
-        if (!supabaseClient) {
-            if (statusMessage) statusMessage.innerHTML = `❌ 連線失敗: Supabase SDK 未正確載入`;
-            return;
-        }
+        if (!supabaseClient) return;
 
         // 撈取貼文
         const { data: posts, error: postError } = await supabaseClient
@@ -61,13 +59,17 @@ async function fetchPosts() {
 
         if (postError) throw postError;
 
-        // 撈取留言
-        const { data: comments, error: commentError } = await supabaseClient
-            .from('comments')
-            .select('*')
-            .order('created_at', { ascending: true });
-
-        if (commentError) throw commentError;
+        // 撈取留言 (若無留言表則回傳空陣列，避免整支程式卡死)
+        let comments = [];
+        try {
+            const { data: commentsData, error: commentError } = await supabaseClient
+                .from('comments')
+                .select('*')
+                .order('created_at', { ascending: true });
+            if (!commentError) comments = commentsData;
+        } catch (ce) {
+            console.warn("留言撈取失敗，可能 comments 表格尚未建立或 RLS 限制:", ce);
+        }
 
         if (statusMessage) statusMessage.style.display = 'none';
         postsContainer.innerHTML = '';
@@ -84,11 +86,12 @@ async function fetchPosts() {
                 month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
             });
 
-            const isLiked = likedPosts.includes(post.id);
+            // 轉字串比對按讚狀態
+            const isLiked = likedPosts.includes(String(post.id));
             const heartClass = isLiked ? 'heart-btn liked' : 'heart-btn';
 
-            // 過濾出屬於該貼文的留言
-            const postComments = comments ? comments.filter(c => c.post_id === post.id) : [];
+            // 確保 post_id 與 post.id 型態一致再進行過濾
+            const postComments = comments ? comments.filter(c => String(c.post_id) === String(post.id)) : [];
             let commentsHtml = '';
             
             postComments.forEach((c, index) => {
@@ -127,7 +130,7 @@ async function fetchPosts() {
             postsContainer.appendChild(card);
         });
 
-        // 綁定留言回覆點擊事件
+        // 綁定留言按鈕點擊
         document.querySelectorAll('.comment-submit-btn').forEach(button => {
             button.addEventListener('click', async function(e) {
                 e.preventDefault();
@@ -137,8 +140,8 @@ async function fetchPosts() {
         });
 
     } catch (error) {
-        console.error("抓取貼文失敗資訊:", error);
-        if (statusMessage) statusMessage.innerHTML = `❌ 連線失敗: ${error.message || '無法與資料庫建立同步'}`;
+        console.error("資料渲染失敗:", error);
+        if (statusMessage) statusMessage.innerHTML = `❌ 連線失敗: ${error.message}`;
     }
 }
 
@@ -148,19 +151,18 @@ async function fetchPosts() {
 window.handleLikeClick = async function(postId, currentLikes) {
     if (!supabaseClient) return;
     const likedPosts = getLikedPosts();
-    const isAlreadyLiked = likedPosts.includes(postId);
+    const isAlreadyLiked = likedPosts.includes(String(postId));
     const newLikesCount = isAlreadyLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1;
 
     toggleLocalLike(postId);
     fetchPosts(); 
 
     try {
+        // 同時試圖更新 likes 欄位，若失敗則在控制台記錄，但不卡死網頁
         const { error } = await supabaseClient.from('posts').update({ likes: newLikesCount }).eq('id', postId);
-        if (error) throw error;
+        if (error) console.warn("資料庫 likes 欄位更新略過或失敗，請檢查後台欄位名稱是否為全小寫 likes");
     } catch (error) {
-        console.error("按讚失敗:", error);
-        toggleLocalLike(postId);
-        fetchPosts();
+        console.error("按讚同步失敗:", error);
     }
 };
 
@@ -180,13 +182,14 @@ if (postForm) {
         submitBtn.disabled = true;
 
         try {
-            const { error } = await supabaseClient.from('posts').insert([{ title, content, likes: 0 }]);
+            // 嘗試寫入新貼文
+            const { error } = await supabaseClient.from('posts').insert([{ title, content }]);
             if (error) throw error;
             postForm.reset();
             await fetchPosts();
         } catch (error) {
-            console.error(error);
-            alert('發文失敗！');
+            console.error("發文失敗:", error);
+            alert('發文失敗，請檢查資料庫欄位配置！');
         } finally {
             submitBtn.disabled = false;
         }
@@ -202,28 +205,30 @@ async function submitComment(postId) {
     if (!inputElement) return;
     
     const content = inputElement.value.trim();
-
     if (!content) {
         alert('回覆內容不能留空喔！');
         return;
     }
 
     try {
+        // 🌟 自動偵測並轉換 post_id 的型態 (如果是純數字就轉數字，否則維持字串 UUID)
+        const parsedPostId = !isNaN(postId) ? parseInt(postId, 10) : postId;
+
         const { error } = await supabaseClient
             .from('comments')
-            .insert([{ post_id: postId, content: content }]);
+            .insert([{ post_id: parsedPostId, content: content }]);
 
         if (error) throw error;
         
         inputElement.value = ''; 
         await fetchPosts();      
     } catch (error) {
-        alert('留言失敗，請檢查網路連線狀態！');
-        console.error("留言詳細錯誤資訊:", error);
+        alert('留言失敗，請確認 comments 表的 post_id 欄位型態與貼文 id 一致！');
+        console.error("留言詳細錯誤:", error);
     }
 }
 
-// 頁面加載完成後自動初始化
+// 初始化
 if (postsContainer) {
     fetchPosts();
 }
