@@ -39,9 +39,10 @@ async function fetchPosts() {
                 ${postComments.map(c => `<p class="comment-item">匿名: ${c.content}</p>`).join('')}
             </div>
             
+            // 在 app.js 的 fetchPosts 函式中找到這段並修改：
             <div class="comment-input-wrapper">
-                <input type="text" id="input-${post.id}" placeholder="回覆...">
-                <button class="submit-comment-btn" onclick="submitComment('${post.id}')">送出回覆</button>
+                <input type="text" id="input-${post.id}" placeholder="回覆..." class="comment-input">
+                <button class="comment-submit-btn" onclick="submitComment('${post.id}')">送出回覆</button>
             </div>
         `;
         postsContainer.appendChild(card);

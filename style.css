@@ -321,3 +321,28 @@ input[type="text"]:focus, textarea:focus {
     border-top: 1px solid #151f32;
     margin-top: auto;
 }
+/* 留言輸入框樣式 */
+.comment-input {
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: white;
+    padding: 8px;
+    border-radius: 4px;
+    width: 70%;
+}
+
+/* 留言送出按鈕：對齊你原本的網頁風格 */
+.comment-submit-btn {
+    background-color: #00d1b2; /* 這是你發表按鈕的青綠色 */
+    color: #0a0a0a;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.3s;
+}
+
+.comment-submit-btn:hover {
+    background-color: #00b89c; /* 滑鼠移上去的深一點色 */
+}
